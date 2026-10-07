@@ -1,0 +1,27 @@
+# Every PR: the registry parses and every pinned sha256 matches the release asset it names.
+name: validate
+on: [push, pull_request]
+jobs:
+  registry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -e . pytest
+      - run: byop registry measures.json
+      - run: pytest -q
+      - name: Verify pins against the releases
+        run: |
+          python - <<'PY'
+          import json, sys
+          from byop import registry as reg
+          registry = reg.load_registry()
+          bad = []
+          for entry in registry["measures"]:
+              if entry.get("pending_release"): continue
+              for asset, digest in entry["assets"].items():
+                  actual = reg.sha256_of_url(reg.release_asset_url(entry["repo"], entry["tag"], asset))
+                  if actual != digest: bad.append(f"{entry['name']}/{asset}: pinned {digest} but release has {actual}")
+          print("\n".join(bad) or "all pins match"); sys.exit(1 if bad else 0)
+          PY

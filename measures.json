@@ -1,0 +1,46 @@
+{
+  "contract": "byop/v1",
+  "_comment": "The admitted measure sources. A PR that adds or bumps an entry is how a measure enters Penlight; the tag + sha256 pins are what the pipeline downloads. Entries with pending_release are read from local checkouts until their first tagged release.",
+  "measures": [
+    {
+      "name": "sunscore",
+      "repo": "HarryBrisson/sunscore",
+      "layers_subdir": "data/processed/layers",
+      "pending_release": true,
+      "targets": ["ward", "community_area", "chi"],
+      "allocation_method": "native_source_byop",
+      "confidence": "medium",
+      "notes": "Street-level sun access from the 2022 Cook County LiDAR DSM; 18 m grid. Nominated by Jackie Schmitz, 43rd Ward."
+    },
+    {
+      "name": "parkability",
+      "repo": "HarryBrisson/parkability",
+      "layers_subdir": "data/layers",
+      "pending_release": true,
+      "targets": ["community_area", "chi"],
+      "allocation_method": "native_source_byop",
+      "confidence": "medium",
+      "notes": "Ward values still come from the repo's own ward summary; two fixed-geography metrics stay ward-only."
+    },
+    {
+      "name": "rentrate",
+      "repo": "HarryBrisson/rentrate",
+      "layers_subdir": "data/layers",
+      "pending_release": true,
+      "targets": ["ward", "community_area", "chi"],
+      "allocation_method": "native_source_byop",
+      "confidence": "medium",
+      "notes": "Cook County parcels; the absentee layer is the full 1.6 M parcels (216 MB) — a release should publish the documented parcel-digit sample instead."
+    },
+    {
+      "name": "microhappiness",
+      "repo": "HarryBrisson/microhappiness",
+      "layers_subdir": "data/national",
+      "pending_release": true,
+      "targets": ["ward", "community_area", "chi"],
+      "allocation_method": "modeled_synthetic_sae",
+      "confidence": "low",
+      "notes": "Synthetic small-area estimates (GSS × ACS/PLACES MRP), nationwide tracts + ZCTAs; labeled modeled, never observed."
+    }
+  ]
+}

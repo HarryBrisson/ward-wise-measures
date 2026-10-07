@@ -1,0 +1,44 @@
+# Reusable workflow for a MEASURE repo: on a tag, validate the layers dir and attach every file in it
+# to the GitHub Release for that tag. Call it from the measure repo (see ADDING_A_MEASURE.md).
+# Nothing here touches Penlight; the author's own GITHUB_TOKEN publishes to the author's own release.
+name: publish measure
+on:
+  workflow_call:
+    inputs:
+      layers_dir:
+        description: folder holding aggregation_spec.json and the layer files
+        required: true
+        type: string
+      lenient:
+        description: skip the label/description/methodology/direction requirement (not for Penlight)
+        required: false
+        type: boolean
+        default: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install "git+https://github.com/HarryBrisson/ward-wise-measures#egg=byop[geo]" || pip install "git+https://github.com/HarryBrisson/ward-wise-measures"
+      - name: Validate
+        run: byop validate "${{ inputs.layers_dir }}" ${{ inputs.lenient && '--lenient' || '' }}
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          files=$(find "${{ inputs.layers_dir }}" -maxdepth 1 -type f | sort)
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --title "$tag" --notes "byop/v1 layers for $tag" --verify-tag
+          gh release upload "$tag" $files --clobber
+          echo "## Pins for measures.json" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          python - $files <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import hashlib, json, sys, pathlib
+          print(json.dumps({pathlib.Path(f).name: "sha256:" + hashlib.sha256(pathlib.Path(f).read_bytes()).hexdigest() for f in sys.argv[1:]}, indent=2))
+          PY
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

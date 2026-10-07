@@ -1,0 +1,21 @@
+[project]
+name = "byop"
+version = "0.1.0"
+description = "byop/v1: bring-your-own-polygons measure contract — validator, pinning, registry (ward-wise-measures)"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = ["jsonschema>=4"]
+
+[project.optional-dependencies]
+geo = ["rasterio"]
+
+[project.scripts]
+byop = "byop.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["byop"]
