@@ -61,3 +61,16 @@ def test_registry_requires_pins_once_released():
                                                      "assets": {"aggregation_spec.json": "sha256:zz"}}]}
     problems = reg.validate_registry(registry)
     assert any("digest" in p for p in problems)
+
+
+def test_publish_dry_run_names_only_the_spec_files_and_pins_them(tmp_path):
+    from byop.publish import publish, registry_entry
+    (tmp_path / "aggregation_spec.json").write_text(json.dumps(_spec()))
+    (tmp_path / "pts.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": [
+        {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-87.6, 41.9]}, "properties": {"ok": True}}]}))
+    (tmp_path / "scratch.csv").write_text("not published")
+    files = publish(tmp_path, repo="a/b", tag="v1", dry_run=True)
+    assert [f.name for f in files] == ["aggregation_spec.json", "pts.geojson"]
+    entry = registry_entry(tmp_path, name="demo", repo="a/b", tag="v1", targets=["community_area"])
+    assert set(entry["assets"]) == {"aggregation_spec.json", "pts.geojson"}
+    assert reg.validate_registry({"contract": "byop/v1", "measures": [entry]}) == []

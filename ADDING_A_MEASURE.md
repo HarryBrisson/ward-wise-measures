@@ -27,7 +27,17 @@ and prints the metrics the way a consumer sees them.
 
 ## 4. Publish a release
 
-Add this workflow to your repo as `.github/workflows/publish.yml`:
+**If your layers are built on your own machine** (rasters, large CSVs you don't commit), publish from
+there. It validates, creates the release, uploads exactly the files the spec names, and prints your
+registry entry with the sha256 pins:
+
+```bash
+byop publish data/layers --repo you/your-measure --tag v2026.10.13 --targets community_area,chi
+byop publish data/layers --repo you/your-measure --tag v2026.10.13 --dry-run   # check first
+```
+
+**If CI can build or already has the layers** (they're committed, or a workflow produces them), add
+this workflow to your repo as `.github/workflows/publish.yml`:
 
 ```yaml
 name: publish measure
@@ -48,7 +58,7 @@ the layers dir to the release, and prints the sha256 of each asset.
 
 ## 5. Open a pull request here
 
-Add your entry to `measures.json`:
+Add your entry to `measures.json` (`byop publish` printed it for you):
 
 ```json
 {
