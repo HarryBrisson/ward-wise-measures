@@ -5,8 +5,13 @@
     {
       "name": "sunscore",
       "repo": "HarryBrisson/sunscore",
-      "layers_subdir": "data/processed/layers",
-      "pending_release": true,
+      "tag": "v2026.10.13",
+      "assets": {
+        "aggregation_spec.json": "sha256:aa0c07c23aaa12f85888c12053f0b549787383634aeb210d43c4d1e92953afb1",
+        "sun_access_annual.tif": "sha256:45d6a48e64fc01e32ba407da961b45190ff77f6e5f8a087d0ba6a5e1dd30a9a9",
+        "sun_access_summer_solstice.tif": "sha256:89839d35d2fe5cb5f6a5f4685ba4d63590ae0571fabc64def46e050f1497d860",
+        "sun_access_winter_solstice.tif": "sha256:a72122f0446ef753ca1618c8158c1701d3bc7d45be91ba7b233d86997c3b9894"
+      },
       "targets": [
         "community_area",
         "chi"
