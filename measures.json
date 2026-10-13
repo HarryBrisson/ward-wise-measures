@@ -12,7 +12,7 @@
         "chi"
       ],
       "allocation_method": "native_source_byop",
-      "confidence": "medium",
+      "confidence": "high",
       "notes": "Street-level sun access from the 2022 Cook County LiDAR DSM; 18 m grid. Ward values still come from the repo's own ward summary, so only neighborhoods and χGRIDs are aggregated here. Nominated by Jackie Schmitz, 43rd Ward."
     },
     {
@@ -25,7 +25,7 @@
         "chi"
       ],
       "allocation_method": "native_source_byop",
-      "confidence": "medium",
+      "confidence": "high",
       "notes": "Ward values still come from the repo's own ward summary; two fixed-geography metrics stay ward-only."
     },
     {
@@ -39,7 +39,7 @@
         "chi"
       ],
       "allocation_method": "native_source_byop",
-      "confidence": "medium",
+      "confidence": "high",
       "notes": "Cook County parcels; the absentee layer is the full 1.6 M parcels (216 MB) — a release should publish the documented parcel-digit sample instead."
     },
     {
