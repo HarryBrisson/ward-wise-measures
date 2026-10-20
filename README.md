@@ -31,11 +31,12 @@ source repo changes nothing in Penlight until someone opens a new PR here.
 | Source | Repo | Layers | Metrics |
 |---|---|---|---|
 | sunscore | [HarryBrisson/sunscore](https://github.com/HarryBrisson/sunscore) | 3 rasters (18 m, street-level sun access) | annual / summer / winter sun access |
+| zonewise | [HarryBrisson/zonewise](https://github.com/HarryBrisson/zonewise) | passed rezonings 2011+ (dated points; byop v1.1 `time_field`) | yearly rezonings per km², upzoning share, to-multifamily share, zoned capacity added |
 | parkability | [HarryBrisson/parkability](https://github.com/HarryBrisson/parkability) | parking sites, 311 complaints, car ownership (points) | 3 per-km² / per-household rates |
 | rentrate | [HarryBrisson/rentrate](https://github.com/HarryBrisson/rentrate) | residential parcels, rental profit parcels (points) | absentee-owner share, landlord-profit shares |
 | microhappiness | [HarryBrisson/microhappiness](https://github.com/HarryBrisson/microhappiness) | nationwide tract + ZCTA tables (polygon_values) | 16 modeled wellbeing / time-use / religion estimates |
 
-These four predate the registry and are listed with `pending_release: true` until each publishes
+parkability, rentrate and microhappiness predate the registry and are listed with `pending_release: true` until each publishes
 its first tagged release; Penlight still reads them from local checkouts in the meantime.
 
 MIT © Harry Brisson.

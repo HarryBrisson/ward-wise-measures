@@ -19,12 +19,27 @@ RULE_FIELDS = {
     "count": {"required": (), "kinds": ("points",)},
     "ratio": {"required": ("numerator", "denominator"), "kinds": ("points",)},
     "share": {"required": ("flag",), "kinds": ("points",)},
+    "sum": {"required": ("value",), "kinds": ("points",)},
     "mean": {"required": (), "kinds": ("raster",)},
     "weighted_mean": {"required": ("value", "weight"), "kinds": ("polygon_values",)},
 }
 CATALOG_FIELDS = ("label", "description", "methodology", "direction")
 KNOWN_CATEGORIES = {"physical_environment", "community_vitality", "material_wellbeing", "health", "good_governance",
                     "education", "safety", "time_balance", "psychological_wellbeing", "culture", "other"}
+_ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_TIME_VALUE = re.compile(r"^\d{4}(-\d{2}-\d{2}([T ].*)?)?$")
+
+
+def time_value_year(value: Any) -> int | None:
+    """The calendar year a `time_field` value falls in (an int year, "YYYY", or an ISO date/datetime);
+    None when absent or unparseable. Consumers bucket by this year."""
+    if isinstance(value, bool) or value is None or value == "":
+        return None
+    if isinstance(value, int):
+        return value if 1000 <= value <= 9999 else None
+    if isinstance(value, str) and _TIME_VALUE.match(value.strip()):
+        return int(value.strip()[:4])
+    return None
 
 
 class ValidationError(Exception):
@@ -60,6 +75,10 @@ def validate_spec(spec: dict[str, Any], *, strict_catalog: bool = True) -> list[
     if spec.get("contract") != "byop/v1":
         problems.append(f"contract must be 'byop/v1', got {spec.get('contract')!r}")
     layers = spec.get("layers") or {}
+    for name, layer in layers.items():
+        as_of = (layer or {}).get("as_of")
+        if as_of is not None and not (isinstance(as_of, str) and _ISO_DATE.match(as_of)):
+            problems.append(f"layer {name!r}: as_of must be an ISO date (YYYY-MM-DD), got {as_of!r}")
     for metric_id, metric in (spec.get("metrics") or {}).items():
         if not isinstance(metric, dict):
             problems.append(f"{metric_id}: must be an object"); continue
@@ -79,6 +98,17 @@ def validate_spec(spec: dict[str, Any], *, strict_catalog: bool = True) -> list[
         for field in rule["required"]:
             if not metric.get(field):
                 problems.append(f"{metric_id}: combine {metric['combine']!r} needs {field!r}")
+        if metric.get("time_field"):
+            for name in layer_names:
+                if (layers.get(name) or {}).get("kind") not in (None, "points"):
+                    problems.append(f"{metric_id}: time_field works on points layers only, {name!r} is {layers[name].get('kind')!r}")
+        years = metric.get("years")
+        if years is not None:
+            if not metric.get("time_field"):
+                problems.append(f"{metric_id}: years needs a time_field")
+            if not (isinstance(years, list) and len(years) == 2 and all(isinstance(y, int) for y in years)
+                    and years[0] <= years[1]):
+                problems.append(f"{metric_id}: years must be [start, end] with start <= end")
         if strict_catalog:
             for field in CATALOG_FIELDS:
                 if not metric.get(field):
@@ -88,17 +118,20 @@ def validate_spec(spec: dict[str, Any], *, strict_catalog: bool = True) -> list[
     return problems
 
 
-def _points_properties(path: Path, limit: int = 2000) -> tuple[set[str], int]:
+def _points_properties(path: Path, limit: int = 2000) -> tuple[set[str], int, list[dict[str, Any]]]:
+    """(property names, feature count, the first `limit` features' properties)."""
     data = json.loads(path.read_text(encoding="utf-8"))
     features = data.get("features") if isinstance(data, dict) else None
     if data.get("type") != "FeatureCollection" or features is None:
         raise ValidationError([f"{path.name}: not a GeoJSON FeatureCollection"])
     props: set[str] = set()
+    sample: list[dict[str, Any]] = []
     for feature in features[:limit]:
         if (feature.get("geometry") or {}).get("type") != "Point":
             raise ValidationError([f"{path.name}: every feature must be a Point (found {(feature.get('geometry') or {}).get('type')!r})"])
-        props.update((feature.get("properties") or {}).keys())
-    return props, len(features)
+        sample.append(feature.get("properties") or {})
+        props.update(sample[-1].keys())
+    return props, len(features), sample
 
 
 def _csv_columns(path: Path) -> tuple[set[str], int]:
@@ -132,6 +165,7 @@ def validate_layers_dir(layers_dir: str | Path, *, strict_catalog: bool = True) 
     problems = validate_spec(spec, strict_catalog=strict_catalog)
     report: dict[str, Any] = {"source": spec.get("source"), "layers": {}, "metrics": list((spec.get("metrics") or {}).keys())}
     fields_by_layer: dict[str, set[str]] = {}
+    sample_by_layer: dict[str, list[dict[str, Any]]] = {}
     for name, layer in (spec.get("layers") or {}).items():
         path = layers_dir / str(layer.get("file", ""))
         if not path.exists():
@@ -139,7 +173,7 @@ def validate_layers_dir(layers_dir: str | Path, *, strict_catalog: bool = True) 
         size_mb = path.stat().st_size / 1e6
         try:
             if layer.get("kind") == "points":
-                fields, n = _points_properties(path); fields_by_layer[name] = fields
+                fields, n, sample_by_layer[name] = _points_properties(path); fields_by_layer[name] = fields
                 report["layers"][name] = {"kind": "points", "features": n, "mb": round(size_mb, 1)}
             elif layer.get("kind") == "polygon_values":
                 fields, n = _csv_columns(path); fields_by_layer[name] = fields
@@ -166,6 +200,17 @@ def validate_layers_dir(layers_dir: str | Path, *, strict_catalog: bool = True) 
             for col in metric.get("ci") or []:
                 if col not in fields:
                     problems.append(f"{metric_id}: ci column {col!r} is not in layer {name!r}")
+            time_field = metric.get("time_field")
+            if time_field and name in sample_by_layer:
+                if time_field not in fields:
+                    problems.append(f"{metric_id}: time_field {time_field!r} is not a property of layer {name!r}")
+                    continue
+                values = [p.get(time_field) for p in sample_by_layer[name]]
+                bad = [v for v in values if v not in (None, "") and time_value_year(v) is None]
+                if bad:
+                    problems.append(f"{metric_id}: time_field {time_field!r} has values that are not a year or ISO date, e.g. {bad[0]!r}")
+                elif not any(time_value_year(v) for v in values):
+                    problems.append(f"{metric_id}: time_field {time_field!r} is empty on every sampled point")
     if problems:
         raise ValidationError(problems)
     return report

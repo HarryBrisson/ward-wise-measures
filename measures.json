@@ -21,6 +21,25 @@
       "notes": "Street-level sun access from the 2022 Cook County LiDAR DSM; 18 m grid. Ward values still come from the repo's own ward summary, so only neighborhoods and χGRIDs are aggregated here. Nominated by Jackie Schmitz, 43rd Ward."
     },
     {
+      "name": "zonewise",
+      "repo": "HarryBrisson/zonewise",
+      "tag": "v2026.10.20",
+      "assets": {
+        "aggregation_spec.json": "sha256:936331d7851dd5102ec386fa9cacfa090d0a84f06f9aca434a135826ca1f40da",
+        "rezonings.geojson": "sha256:05dba25ea2811620168fdae57007bee63d5bbbd545bf2530db746cc1f2962c13",
+        "rezonings_far_known.geojson": "sha256:1656844c4139d6d149c710fa9ad04a3068ad536b39981d0d7bc9bf81be148fdf",
+        "rezonings_use_known.geojson": "sha256:525597f3708bbbfb6d79c18a3ab572bdc5397030417b7d6cde0a904d3857dc76"
+      },
+      "targets": [
+        "ward",
+        "community_area",
+        "chi"
+      ],
+      "allocation_method": "native_source_byop",
+      "confidence": "high",
+      "notes": "Passed Chicago rezonings (City Clerk eLMS, 2011+) as dated points; districts read from ordinances and the Council Journal, checked against the City zoning map. First byop/v1.1 source: per-year metrics via time_field, sum combine. Needs a consumer that supports v1.1."
+    },
+    {
       "name": "parkability",
       "repo": "HarryBrisson/parkability",
       "layers_subdir": "data/layers",
