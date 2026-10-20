@@ -52,12 +52,12 @@ Any other top-level keys are kept as provenance and ignored by consumers.
 
 | `kind` | File | Geometry | Used by |
 |---|---|---|---|
-| `points` | GeoJSON FeatureCollection of Point features with `properties` | its own | `count`, `ratio`, `share` |
+| `points` | GeoJSON FeatureCollection of Point features with `properties` | its own | `count`, `ratio`, `share`, `sum` |
 | `raster` | GeoTIFF, any projected CRS, NaN = no data | its own | `mean` |
 | `polygon_values` | CSV with an `id_field` column naming a standard census polygon (tract GEOID, ZCTA) and one column per value/weight | the consumer supplies standard census geometries | `weighted_mean` |
 
 Each layer: `file` (relative to the spec), `kind`, optional `value` (a human sentence describing one
-cell/point/row), and for `polygon_values` the `id_field`.
+cell/point/row), for `polygon_values` the `id_field`, and optional `as_of` (see [Time](#time-v11-optional)).
 
 ### Metrics
 
@@ -74,6 +74,8 @@ cell/point/row), and for `polygon_values` the `id_field`.
 | `default_weight` | no | 0–1; weight in the default index (0 = available but not weighted in) |
 | `nominator` | no | `{"name": ..., "ward_id": "43"}` — the resident who proposed the measure, credited on the map |
 | `scale`, `per`, `flag`, `numerator`, `denominator`, `value`, `weight`, `ci` | per rule | see below |
+| `time_field`, `years` | no | per-year output for points metrics, see [Time](#time-v11-optional) |
+| `time_invariant`, `valid_from` | no | catalog hints: the value doesn't change year to year / isn't meaningful before this year (`YYYY` or ISO date) |
 
 ### Combine rules
 
@@ -82,10 +84,32 @@ cell/point/row), and for `polygon_values` the `id_field`.
 | `count` | points | number of points inside ÷ `per` (`"area_km2"`, or omit for a raw count) |
 | `ratio` | points | Σ `numerator` ÷ Σ `denominator` over points inside, × `scale` (default 1) |
 | `share` | points | fraction of points inside whose `flag` property is truthy, × `scale` (default 100) |
+| `sum` | points | Σ `value` property over points inside ÷ `per` (`"area_km2"`, or omit for a raw sum) — *v1.1* |
 | `mean` | raster | area-weighted mean of the cells inside, NaN ignored, × `scale` (default 1) |
 | `weighted_mean` | polygon_values | Σ(`weight` · overlap · `value`) ÷ Σ(`weight` · overlap) over source polygons overlapping the target |
 
 A target with nothing inside gets no value (not zero).
+
+## Time (v1.1, optional)
+
+Without these fields a metric is one undated reading per target, which a consumer dates by when it
+collected it. That's right for a slow-moving surface (sun access) but throws away the history in a
+stream of dated events (rezonings, sales, permits), and an undated reading can't enter year-over-year
+analysis. Two optional fields fix that; a consumer that predates them still reads the spec and gets the
+all-years total, so adding them never breaks anyone.
+
+- **`time_field`** (metric, `points` layers only): a property holding each point's date — an integer
+  year, `"YYYY"`, or an ISO date/datetime (`"2024-06-12"`). The consumer applies the combine rule
+  **per calendar year**, giving one value per (target, year). Points whose `time_field` is empty or
+  null are left out of that metric. A target-year with no points gets no value, as above — except
+  `count` and `sum`, where a year inside the metric's range with nothing inside is a real zero once the
+  target has any point in any year.
+- **`years`** (metric, needs `time_field`): `[start, end]`, inclusive, bounding which years are
+  reported — use it to stop before a year the source doesn't fully cover.
+- **`as_of`** (layer): an ISO date the layer describes (a zoning map downloaded on that date). The
+  consumer dates every untimed metric on that layer to `as_of` instead of to its collection time.
+
+The current calendar year is partial; consumers mark it so (Penlight: `metadata.partial_year`).
 
 ## Publishing
 
@@ -99,3 +123,11 @@ sample (rentrate publishes a parcel-digit sample of its 1.6 M parcels).
 
 `byop/v1` is frozen: new optional fields may be added, nothing required changes. A breaking change
 becomes `byop/v2` and consumers announce support before sources need it.
+
+| Revision | Added (all optional) |
+|---|---|
+| v1.1 (validator 0.2.0) | `sum` combine; metric `time_field`, `years`, `time_invariant`, `valid_from`; layer `as_of` |
+
+A source that uses a v1.1 field still says `"contract": "byop/v1"`. Before a source relies on one,
+the consumer must support it (Penlight does once its pipeline reads `time_field`) — an older consumer
+rejects `sum` and ignores the time fields.
