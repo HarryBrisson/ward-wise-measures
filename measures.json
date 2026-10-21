@@ -23,12 +23,18 @@
     {
       "name": "zonewise",
       "repo": "HarryBrisson/zonewise",
-      "tag": "v2026.10.20",
+      "tag": "v2026.10.21",
       "assets": {
-        "aggregation_spec.json": "sha256:936331d7851dd5102ec386fa9cacfa090d0a84f06f9aca434a135826ca1f40da",
+        "aggregation_spec.json": "sha256:22dda1424e9328a40f5547c39404c70f31219fbd0c22c9c70f92ee397e9884b1",
         "rezonings.geojson": "sha256:05dba25ea2811620168fdae57007bee63d5bbbd545bf2530db746cc1f2962c13",
         "rezonings_far_known.geojson": "sha256:1656844c4139d6d149c710fa9ad04a3068ad536b39981d0d7bc9bf81be148fdf",
-        "rezonings_use_known.geojson": "sha256:525597f3708bbbfb6d79c18a3ab572bdc5397030417b7d6cde0a904d3857dc76"
+        "rezonings_use_known.geojson": "sha256:525597f3708bbbfb6d79c18a3ab572bdc5397030417b7d6cde0a904d3857dc76",
+        "zoned_business_commercial.tif": "sha256:8c4b2419fb054262e102bad232ccc579b0a397f16757bb8a9e7f4e206b9c0e6b",
+        "zoned_manufacturing.tif": "sha256:d7a393734b15e0b1c2fd2a47390fbb38ef3c035cdada6c9489b87d20a51fb651",
+        "zoned_max_far.tif": "sha256:a52d63f6d1e5d0123601db0c1d2e2379d09a7a96d4d6ee8958d34d689a5066e4",
+        "zoned_multifamily.tif": "sha256:87c53121c48fcaa2cb0e213dd91dd4ca048032c7d9fd58dac61b251cb6eb0d9d",
+        "zoned_planned_development.tif": "sha256:57540e7508c145436a96c05bfebf665bb24452fd885bfdb41a36d4dc791d0f10",
+        "zoned_single_family.tif": "sha256:5d57002965782b6ed504a401d03f53fb106bc38162a93ca297acf1ede5aac379"
       },
       "targets": [
         "ward",
@@ -37,7 +43,7 @@
       ],
       "allocation_method": "native_source_byop",
       "confidence": "high",
-      "notes": "Passed Chicago rezonings (City Clerk eLMS, 2011+) as dated points; districts read from ordinances and the Council Journal, checked against the City zoning map. First byop/v1.1 source: per-year metrics via time_field, sum combine. Needs a consumer that supports v1.1."
+      "notes": "Passed Chicago rezonings (City Clerk eLMS, 2011+) as dated points, plus the current City zoning map (dj47-wfun, 2026-10-19) as 10 m rasters: 4 yearly rezoning metrics via time_field/sum and 6 zoning-composition metrics dated by layer as_of. Districts read from ordinances and the Council Journal, checked against the City zoning map. byop/v1.1 source: needs a consumer that supports v1.1."
     },
     {
       "name": "parkability",
