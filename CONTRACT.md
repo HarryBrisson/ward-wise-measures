@@ -70,12 +70,13 @@ cell/point/row), for `polygon_values` the `id_field`, and optional `as_of` (see 
 | `label` | yes | 1–3 words, the chip on the map |
 | `description` | yes | one sentence a resident understands |
 | `methodology` | yes | how it was computed, 1–3 sentences, with the data source |
-| `category` | recommended | a Penlight domain: `physical_environment`, `community_vitality`, `material_wellbeing`, `health`, `good_governance`, `education`, `safety`, `time_balance`, `psychological_wellbeing`, `culture`; unknown categories land in `other` |
+| `category` | recommended | a Penlight domain: `physical_environment`, `community_vitality`, `material_wellbeing`, `health`, `good_governance`, `education`, `safety`, `time_balance`, `psychological_wellbeing`, `culture`, `social_connectedness`, `lifelong_learning`, `religion_spiritual`; unknown categories land in `other` |
 | `default_weight` | no | 0–1; weight in the default index (0 = available but not weighted in) |
 | `nominator` | no | `{"name": ..., "ward_id": "43"}` — the resident who proposed the measure, credited on the map |
 | `scale`, `per`, `flag`, `numerator`, `denominator`, `value`, `weight`, `ci` | per rule | see below |
 | `time_field`, `years` | no | per-year output for points metrics, see [Time](#time-v11-optional) |
 | `time_invariant`, `valid_from` | no | catalog hints: the value doesn't change year to year / isn't meaningful before this year (`YYYY` or ISO date) |
+| `keywords`, `extra_categories`, `icon_svg` | no | how the metric is found and drawn in the picker, see [Presentation](#presentation-v12-optional) |
 
 ### Combine rules
 
@@ -111,6 +112,40 @@ all-years total, so adding them never breaks anyone.
 
 The current calendar year is partial; consumers mark it so (Penlight: `metadata.partial_year`).
 
+## Presentation (v1.2, optional)
+
+The catalog fields above are enough to put a metric on the map. Three more let it arrive looking as
+finished as a hand-curated one, with no change to the consumer's code. Each is optional and checked by
+the validator even with `--lenient`, because the consumer renders them.
+
+- **`keywords`**: lowercase, space-separated words a resident might search for that the label and
+  description don't already say — `"movie movies film theater cinema screens"`. Letters, digits,
+  spaces and `. , % $ & ' + / -`; at most 300 characters. Be generous: synonyms, plurals, what people
+  call it.
+- **`extra_categories`**: up to 4 more Penlight domains (the `category` list above, not `other`) the
+  metric should also be listed under. `category` stays its primary domain for scoring; these only change
+  where it is found.
+- **`icon_svg`**: the glyph's inner SVG markup, drawn in a `0 0 20 20` box. The consumer wraps it in
+  `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+  stroke-linejoin="round">`, so draw with strokes and leave colour to `currentColor` (`fill="currentColor"`
+  for a solid dot). Only shapes are allowed — `g`, `path`, `circle`, `ellipse`, `line`, `polyline`,
+  `polygon`, `rect` — with geometry and paint attributes (`d`, `cx`, `points`, `transform`, `fill`,
+  `stroke-width`, …); no `<script>`, `<foreignObject>`, `<use>`, `<image>` or text, no `on*` handlers,
+  no `href`/`xlink:href`, no `url(…)`, no comments or entities; at most 2,048 characters.
+
+```json
+"cinemas_count": {
+  "…": "…",
+  "keywords": "movie movies film theater theatre cinema multiplex",
+  "extra_categories": ["community_vitality"],
+  "icon_svg": "<rect x=\"3\" y=\"4\" width=\"14\" height=\"9\" rx=\"1\"/><line x1=\"7\" y1=\"16.5\" x2=\"13\" y2=\"16.5\"/>"
+}
+```
+
+A consumer's own curated glyph or tags for a metric take priority; the spec's are the default. Penlight
+merges `keywords` and `extra_categories` with its hand-kept lists and uses `icon_svg` only when it has no
+hand-drawn glyph, falling back to the metric's domain glyph when the spec has none either.
+
 ## Publishing
 
 Attach the layers dir's files, flat, to a GitHub Release of the source repo, tagged
@@ -127,7 +162,8 @@ becomes `byop/v2` and consumers announce support before sources need it.
 | Revision | Added (all optional) |
 |---|---|
 | v1.1 (validator 0.2.0) | `sum` combine; metric `time_field`, `years`, `time_invariant`, `valid_from`; layer `as_of` |
+| v1.2 (validator 0.3.0) | metric `keywords`, `extra_categories`, `icon_svg` (presentation); `social_connectedness`, `lifelong_learning`, `religion_spiritual` accepted as categories |
 
-A source that uses a v1.1 field still says `"contract": "byop/v1"`. Before a source relies on one,
+A source that uses a v1.1 or v1.2 field still says `"contract": "byop/v1"`. Before a source relies on one,
 the consumer must support it (Penlight does once its pipeline reads `time_field`) — an older consumer
-rejects `sum` and ignores the time fields.
+rejects `sum` and ignores the time and presentation fields (its schema check passes them through as unknown keys).

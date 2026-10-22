@@ -13,6 +13,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from .presentation import extra_categories_problems, icon_svg_problems, keywords_problems
+
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "schema" / "aggregation_spec.schema.json"
 
 RULE_FIELDS = {
@@ -25,7 +27,8 @@ RULE_FIELDS = {
 }
 CATALOG_FIELDS = ("label", "description", "methodology", "direction")
 KNOWN_CATEGORIES = {"physical_environment", "community_vitality", "material_wellbeing", "health", "good_governance",
-                    "education", "safety", "time_balance", "psychological_wellbeing", "culture", "other"}
+                    "education", "safety", "time_balance", "psychological_wellbeing", "culture", "other",
+                    "social_connectedness", "lifelong_learning", "religion_spiritual"}
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _TIME_VALUE = re.compile(r"^\d{4}(-\d{2}-\d{2}([T ].*)?)?$")
 
@@ -109,6 +112,14 @@ def validate_spec(spec: dict[str, Any], *, strict_catalog: bool = True) -> list[
             if not (isinstance(years, list) and len(years) == 2 and all(isinstance(y, int) for y in years)
                     and years[0] <= years[1]):
                 problems.append(f"{metric_id}: years must be [start, end] with start <= end")
+        # v1.2 presentation extras: checked even when lenient, because a consumer renders them
+        if "keywords" in metric:
+            problems.extend(f"{metric_id}: {p}" for p in keywords_problems(metric["keywords"]))
+        if "extra_categories" in metric:
+            problems.extend(f"{metric_id}: {p}" for p in extra_categories_problems(
+                metric["extra_categories"], KNOWN_CATEGORIES - {"other"}, metric.get("category")))
+        if "icon_svg" in metric:
+            problems.extend(f"{metric_id}: {p}" for p in icon_svg_problems(metric["icon_svg"]))
         if strict_catalog:
             for field in CATALOG_FIELDS:
                 if not metric.get(field):

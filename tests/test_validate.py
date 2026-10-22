@@ -152,3 +152,62 @@ def test_time_field_values_are_checked_in_files(tmp_path: Path):
     _write_points(tmp_path, _timed_spec(), [{"ok": True, "sqft": 10, "passed": "2019-06-12"},
                                             {"ok": False, "sqft": -4, "passed": None}])
     assert validate_layers_dir(tmp_path)["layers"]["pts"]["features"] == 2
+
+
+# --- v1.2 presentation extras --------------------------------------------------------------------
+from byop import icon_svg_problems  # noqa: E402
+
+REEL = ('<circle cx="10" cy="10" r="7" fill="none"/><circle cx="10" cy="10" r="1.2" fill="currentColor"/>'
+        '<g transform="translate(0 0.5) scale(1)"><path d="M10 3 L10 6 M3 10 L6 10"/></g>'
+        '<circle cx="10" cy="10" r="2" fill="var(--surface)"/>')
+
+
+def _with(**fields):
+    spec = _spec()
+    spec["metrics"]["demo_share_pct"].update({"category": "culture", **fields})
+    return spec
+
+
+def test_presentation_extras_pass():
+    spec = _with(keywords="movie movies film pm2.5 theater's", extra_categories=["community_vitality", "health"], icon_svg=REEL)
+    assert validate_spec(spec) == []
+
+
+@pytest.mark.parametrize("markup, expected", [
+    ('<script>alert(1)</script>', "<script>"),
+    ('<circle cx="1" cy="1" r="1" onload="alert(1)"/>', "on*"),
+    ('<circle cx="1" cy="1" r="1" ONCLICK = "x"/>', "on*"),
+    ('<a href="https://x.test"><circle r="1"/></a>', "href"),
+    ('<use xlink:href="#x"/>', "href"),
+    ('<foreignObject><div/></foreignObject>', "foreignObject"),
+    ('<image x="0" y="0" width="1" height="1"/>', "<image>"),
+    ('<style>circle{fill:red}</style>', "<style>"),
+    ('<text x="1" y="1">hi</text>', "<text>"),
+    ('<circle r="1" style="fill:red"/>', "'style'"),
+    ('<circle r="1" fill="url(#g)"/>', "characters"),
+    ('<circle r="1" fill="javascript:alert(1)"/>', "characters"),
+    ('<!-- x --><circle r="1"/>', "comments"),
+    ('<circle r="1"/>&#60;script', "entities"),
+    ('<circle r="1">', "well-formed"),
+    ('<circle r="1"/>loose text', "text"),
+    ('<path d="' + "M1 1 " * 500 + '"/>', "cap"),
+    ('', "non-empty"),
+])
+def test_icon_svg_rejects_unsafe_markup(markup, expected):
+    problems = icon_svg_problems(markup)
+    assert problems and any(expected in p for p in problems), problems
+
+
+def test_icon_svg_problem_lands_on_the_metric_even_when_lenient():
+    problems = validate_spec(_with(icon_svg='<script>x</script>'), strict_catalog=False)
+    assert any(p.startswith("demo_share_pct:") and "<script>" in p for p in problems)
+
+
+def test_keywords_and_extra_categories_are_checked():
+    problems = validate_spec(_with(keywords="Movie <b>", extra_categories=["culture", "nope", "health", "health"]))
+    assert any("lowercase" in p for p in problems)
+    assert any("letters, digits" in p for p in problems)
+    assert any("'nope' is not a Penlight domain" in p for p in problems)
+    assert any("already the metric's category" in p for p in problems)
+    assert any("repeats" in p or "non-unique" in p for p in problems)
+    assert any("cap is 4" in p or "too long" in p for p in validate_spec(_with(extra_categories=["health", "education", "safety", "time_balance", "good_governance"])))
