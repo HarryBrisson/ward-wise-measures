@@ -46,6 +46,24 @@
       "notes": "Passed Chicago rezonings (City Clerk eLMS, 2011+) as dated points, plus the current City zoning map (dj47-wfun, 2026-10-19) as 10 m rasters: 4 yearly rezoning metrics via time_field/sum and 6 zoning-composition metrics dated by layer as_of. Districts read from ordinances and the Council Journal, checked against the City zoning map. byop/v1.1 source: needs a consumer that supports v1.1."
     },
     {
+      "name": "screenreach",
+      "repo": "HarryBrisson/screenreach",
+      "tag": "v2026.10.22",
+      "assets": {
+        "aggregation_spec.json": "sha256:f217d7c11fb470397b7271e7698b1be4cf574c9d965e2cb1c1c7f80a352be887",
+        "cinemas.geojson": "sha256:3fbb97a7eeb5099eb6100ea1899e215dc51cc98eb5ba6ec6c6eba7b858744d7d",
+        "residents.geojson": "sha256:861623c165fd0985b50f9759088ff665bec4e4f0efda8a71175b25f9aba6fe52"
+      },
+      "targets": [
+        "ward",
+        "community_area",
+        "chi"
+      ],
+      "allocation_method": "native_source_byop",
+      "confidence": "high",
+      "notes": "Movie-theater reach, the worked point-of-interest example: 66 operating cinemas in Chicago and a 15-mile ring (Google Maps sweep 2026-10-22; status and screen counts checked by a model with web search, verified by a stronger model, disagreements settled by hand) plus 2020 Census block populations. Five population-weighted reach metrics via ratio (nearest, 5th-nearest and nearest independent cinema; screens within 3 mi; screens per 100k by two-step floating catchment) and in-area cinema and screen counts (sum: byop/v1.1 source)."
+    },
+    {
       "name": "parkability",
       "repo": "HarryBrisson/parkability",
       "layers_subdir": "data/layers",
